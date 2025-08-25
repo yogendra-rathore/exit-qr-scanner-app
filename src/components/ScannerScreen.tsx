@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { useQrScanner } from "../hooks/useQrScanner";
 
 type Props = {
@@ -9,11 +9,48 @@ type Props = {
 export default function ScannerScreen({ onResult, onCancel }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [permError, setPermError] = useState<string | null>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
   const handleErr = useCallback((e: unknown) => {
     const msg = e instanceof Error ? e.message : "Camera error";
     setPermError(msg);
   }, []);
+
+  useEffect(() => {
+    // Request **front camera** explicitly
+    navigator.mediaDevices
+      .getUserMedia({
+        video: { facingMode: { exact: "user" } }, // force front camera
+        audio: false,
+      })
+      .then((mediaStream) => {
+        setStream(mediaStream);
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+        }
+      })
+      .catch((err) => {
+        console.warn("Front camera not available, fallback to default camera", err);
+
+        // fallback to any available camera
+        navigator.mediaDevices
+          .getUserMedia({ video: true })
+          .then((mediaStream) => {
+            setStream(mediaStream);
+            if (videoRef.current) {
+              videoRef.current.srcObject = mediaStream;
+            }
+          })
+          .catch(handleErr);
+      });
+
+    return () => {
+      // Clean up camera stream
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [handleErr]);
 
   useQrScanner({
     active: true,
