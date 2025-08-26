@@ -10,39 +10,56 @@ type UseQrScannerArgs = {
 
 /**
  * Starts camera + QR decode when `active` is true.
- * Stops cleanly on unmount/deactivation. Uses back camera on tablets/phones.
+ * Tries to use the front camera; falls back to any available camera if not accessible.
+ * Stops cleanly on unmount/deactivation.
  */
-export function useQrScanner({ active, videoRef, onResult, onError }: UseQrScannerArgs){
+export function useQrScanner({ active, videoRef, onResult, onError }: UseQrScannerArgs) {
   const controlsRef = useRef<IScannerControls | null>(null);
 
   useEffect(() => {
     let isMounted = true;
-    if(!active || !videoRef.current) return;
+    if (!active || !videoRef.current) return;
 
     const reader = new BrowserMultiFormatReader();
 
-    (async () => {
+    const startScanner = async (constraints: MediaStreamConstraints) => {
       try {
-        const constraints: MediaStreamConstraints = {
-          audio: false,
-          video: {
-            facingMode: { ideal: 'environment' },
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          }
-        };
-
         await reader.decodeFromConstraints(constraints, videoRef.current!, (result, err, controls) => {
-            console.log("Error while decoding",err);
-            
-          if(controls && !controlsRef.current) controlsRef.current = controls;
-          if(result && isMounted){
+          if (err) {
+            console.warn("QR decode error:", err);
+          }
+
+          if (controls && !controlsRef.current) controlsRef.current = controls;
+
+          if (result && isMounted) {
             onResult(result.getText());
           }
-          // ignore decoding errors; stream continues
         });
-      } catch (e){
-        onError?.(e);
+      } catch (e) {
+        throw e; // Bubble up to outer handler
+      }
+    };
+
+    (async () => {
+      try {
+        // Try using the front camera
+        await startScanner({
+          video: { facingMode: { exact: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false
+        });
+      } catch (err) {
+        console.warn("Front camera not available, falling back to default camera:", err);
+
+        // Fallback to any available camera
+        try {
+          await startScanner({
+            video: { facingMode: 'user' }, // Try user-facing if available, or fallback to default
+            audio: false
+          });
+        } catch (fallbackErr) {
+          console.error("Camera access failed:", fallbackErr);
+          onError?.(fallbackErr);
+        }
       }
     })();
 
