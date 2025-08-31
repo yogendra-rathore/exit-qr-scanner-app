@@ -30,7 +30,10 @@ export default function ScannerScreen({ onResult, onCancel }: Props) {
         }
       })
       .catch((err) => {
-        console.warn("Front camera not available, fallback to default camera", err);
+        console.warn(
+          "Front camera not available, fallback to default camera",
+          err
+        );
 
         // fallback to any available camera
         navigator.mediaDevices

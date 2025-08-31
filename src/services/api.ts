@@ -1,51 +1,73 @@
 // services/api.ts
 // This is a mock API service file to simulate backend behavior.
-
+const apiUrl = import.meta.env.VITE_API_BASE_URL;
 type VerifyResponse = {
   success: boolean;
   message: string;
+  data?:Object
 };
 
 export const api = {
   // Mock: Verify Order ID
-  verifyOrderId(orderId: string): Promise<VerifyResponse> {
-    return new Promise((resolve) => {
-      console.log(`Mock API: Verifying Order ID -> ${orderId}`);
-      setTimeout(() => {
-        if (orderId === "ORDER123") {
-          resolve({ success: true, message: "Order ID is valid" });
-        } else {
-          resolve({ success: false, message: "Invalid Order ID" });
-        }
-      }, 800); // Simulate network latency
-    });
+  async verifyOrderId(orderId: string): Promise<VerifyResponse> {
+      try {
+      const res = await fetch(
+        `${apiUrl}/orders/${orderId}`
+      );
+      const responseData=await res.json();
+      console.log("Response Data",responseData);
+      
+      if (responseData?.success) {
+        return {
+          success: true,
+          message: "Order Validated Successfully",
+          data: responseData?.userData
+        };
+      } else  {
+        return {
+          success: false,
+          message: "Order not found",
+        };
+      } 
+    } catch (err: any) {
+      console.error("API error:", err);
+      return {
+        success: false,
+        message: "Failed to connect to server",
+      };
+    }
   },
 
   // Mock: Verify QR Token
-  verifyQrToken(token: string): Promise<VerifyResponse> {
-    return new Promise((resolve) => {
-      console.log(`Mock API: Verifying QR Token -> ${token}`);
-      setTimeout(() => {
-        if (token === "QR-TOKEN-VALID") {
-          resolve({ success: true, message: "QR token verified successfully" });
-        } else {
-          resolve({ success: false, message: "QR token is invalid or expired" });
-        }
-      }, 800);
-    });
+  async verifyQrToken(orderCode: string): Promise<VerifyResponse> {
+    
+    try {
+      const res = await fetch(
+        `${apiUrl}/orders/${orderCode}`
+      );
+      const responseData=await res.json();
+      console.log("Response Data",responseData);
+      
+      if (responseData?.success) {
+        return {
+          success: true,
+          message: "Order Validated Successfully",
+          data: responseData?.userData
+        };
+      } else  {
+        return {
+          success: false,
+          message: "Order not found",
+        };
+      } 
+    } catch (err: any) {
+      console.error("API error:", err);
+      return {
+        success: false,
+        message: "Failed to connect to server",
+      };
+    }
+
   },
 
-  // Example: Mock fetch products
-  fetchProducts(): Promise<any[]> {
-    return new Promise((resolve) => {
-      console.log("Mock API: Fetching products");
-      setTimeout(() => {
-        resolve([
-          { id: 1, name: "Product A", price: 100 },
-          { id: 2, name: "Product B", price: 150 },
-          { id: 3, name: "Product C", price: 200 },
-        ]);
-      }, 800);
-    });
-  }
 };

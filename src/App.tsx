@@ -9,11 +9,13 @@ export default function App() {
   const [status, setStatus] = useState<VerifyStatus>("idle");
   const [message, setMessage] = useState<string | undefined>(undefined);
   const verifyingRef = useRef(false); // debounce API calls
+  const [userData, setUserData] = useState<Object | null>(null);
 
   const reset = useCallback(() => {
     verifyingRef.current = false;
     setMessage(undefined);
     setStatus("idle");
+    setUserData(null);
   }, []);
 
   const startScan = useCallback(() => {
@@ -21,10 +23,21 @@ export default function App() {
     setStatus("scanning");
   }, []);
 
-  const handleApiResult = useCallback((ok: boolean, msg?: string) => {
-    setMessage(msg);
-    setStatus(ok ? "success" : "error");
-  }, []);
+  const handleApiResult = useCallback(
+    (ok: boolean, msg?: string, userData?: Object) => {
+      console.log("User Data", userData);
+
+      setMessage(msg);
+      if (ok) {
+        setUserData(userData ?? null); // <-- store user data
+        setStatus("success");
+      } else {
+        setUserData(null); // clear on failure
+        setStatus("error");
+      }
+    },
+    []
+  );
 
   const verifyToken = useCallback(
     async (token: string) => {
@@ -33,7 +46,7 @@ export default function App() {
 
       try {
         const res = await api.verifyQrToken(token);
-        handleApiResult(res.success, res.message);
+        handleApiResult(res.success, res.message, res.data);
       } catch (e) {
         handleApiResult(
           false,
@@ -91,7 +104,9 @@ export default function App() {
           <ScannerScreen onResult={verifyToken} onCancel={reset} />
         )}
 
-        {status === "success" && <ResultScreen ok onReset={reset} />}
+        {status === "success" && (
+          <ResultScreen ok userData={userData} onReset={reset} />
+        )}
 
         {status === "error" && (
           <ResultScreen ok={false} message={message} onReset={reset} />

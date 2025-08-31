@@ -1,10 +1,16 @@
 type Props = {
   ok: boolean;
   message?: string;
+  userData?: Object | null;
   onReset: () => void;
 };
 
-export default function ResultScreen({ ok, message, onReset }: Props) {
+export default function ResultScreen({
+  ok,
+  message,
+  userData,
+  onReset,
+}: Props) {
   return (
     <div className="stack-24" style={{ width: "100%", textAlign: "center" }}>
       <h1 className="title">Scanning Result</h1>
@@ -43,7 +49,8 @@ export default function ResultScreen({ ok, message, onReset }: Props) {
 
       {ok ? (
         <p className="helper" style={{ fontSize: 18 }}>
-          All good! Thank you for shopping with <br />
+          All good! Thank you <strong>{`${(userData as any)?.name}`}</strong>{" "}
+          for shopping with <br />
           Neighbors Market on Nimble
         </p>
       ) : (
